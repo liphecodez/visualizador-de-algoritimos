@@ -1,20 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "raylib.h"
+#include "gerar-dados.h"
 #include "algoritimos/bubblesort.h"
 
 int main(){
-    int qtd_min = 1, qtd_max = 100, qtd_dados = qtd_min + (rand() % ((qtd_max + 1) - qtd_min));
-    int v_min = 1, v_max = 350, dados[300];
-    int alt_base = 400, dis_base = 20, i;
-
-    int usei_bubblesort = 0;
+    
+    int dados[300], qtd_dados, alt_base = 400, dis_base = 20, i;
+    double t_exec = 0;
 
     //Geração de dados
-    for (i = 0; i < qtd_dados; i++)
-    {
-        dados[i] = v_min + (rand() % ((v_max + 1) - v_min));
-    }
+    qtd_dados = GerarDados(dados,10,350,1,100);
 
     //Inicialização da janela
     InitWindow(900, 450, "Visualizador de algoritimos");
@@ -35,11 +31,11 @@ int main(){
             
             EndDrawing();
 
-            if (usei_bubblesort == 0)
+            //Utilização do algoritimo pelo loop da janela
+            if (GetTime() - t_exec > 0.01)
             {
-                WaitTime(2);
                 BubbleSort(dados, qtd_dados);
-                usei_bubblesort = 1;
+                t_exec = GetTime();
             }
         }
 

@@ -1,22 +1,38 @@
+typedef struct
+{
+    int round, pos, changed, sorted;
+} bubblesortstate;
+
+static bubblesortstate state = {1,0,0,0};
+
 void BubbleSort(int arr[], int size){
 
-    int holder, i;
-    int sorted = 0;
+    int holder;
 
-    while (!sorted)
+    if (state.pos < size - state.round && state.sorted == 0)
     {
-        sorted = 1;
-        for (i = 0; i < size-1; i++)
+        if (arr[state.pos] > arr[state.pos+1])
         {
-            if (arr[i] > arr[i+1])
-            {
-                holder = arr[i];
-                arr[i] = arr[i+1];
-                arr[i+1] = holder;
-                sorted = 0;
-            }
-        }
+            holder = arr[state.pos];
+            arr[state.pos] = arr[state.pos+1];
+            arr[state.pos+1] = holder;
 
-        size -= 1;
+            state.changed = 1;
+        }
+        
+        state.pos += 1;
+    }
+    else
+    {
+        if (state.changed == 1)
+        {
+            state.pos = 0;
+            state.changed = 0;
+            state.round += 1;
+        }
+        else
+        {
+            state.sorted = 1;
+        }
     }
 }
