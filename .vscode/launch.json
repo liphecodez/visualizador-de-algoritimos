@@ -6,6 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/visualizador",
+            "preLaunchTask": "Compilar Raylib",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

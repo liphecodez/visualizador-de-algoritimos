@@ -4,7 +4,7 @@
         {
             "label": "Compilar Raylib",
             "type": "shell",
-            "command": "gcc main.c -o visualizador $(pkg-config --cflags --libs raylib) -lm -lX11",
+            "command": "gcc main.c $(find . -name '*.c' ! -name 'main.c') -o visualizador $(pkg-config --cflags --libs raylib) -lm -lX11",
             "group": {
                 "kind": "build",
                 "isDefault": true
