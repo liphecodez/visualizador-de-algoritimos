@@ -1,3 +1,5 @@
+#include "algorithmpack.h"
+
 typedef struct
 {
     int round, pos, changed, sorted;
@@ -5,9 +7,15 @@ typedef struct
 
 static bubblesortstate state = {1,0,0,0};
 
-void BubbleSort(int arr[], int size){
+algorithmpack BubbleSort(int arr[], int size){
 
+    algorithmpack pack;
     int holder;
+
+    pack.x = state.pos;
+    pack.y = state.pos + 1;
+    pack.changed = 0;
+    pack.sorted = 0;
 
     if (state.pos < size - state.round && state.sorted == 0)
     {
@@ -18,6 +26,7 @@ void BubbleSort(int arr[], int size){
             arr[state.pos+1] = holder;
 
             state.changed = 1;
+            pack.changed = 1;
         }
         
         state.pos += 1;
@@ -33,6 +42,9 @@ void BubbleSort(int arr[], int size){
         else
         {
             state.sorted = 1;
+            pack.sorted = 1;
         }
     }
+
+    return pack;
 }

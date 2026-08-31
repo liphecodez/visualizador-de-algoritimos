@@ -1,6 +1,8 @@
+#include "algorithmpack.h"
+
 #ifndef BUBBLESORT_H
 #define BUBBLESORT_H
 
-void BubbleSort(int arr[], int size);
+algorithmpack BubbleSort(int arr[], int size);
 
 #endif
