@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "raylib.h"
-#include "algoritimos/algorithmpack.h"
 #include "gerar-dados.h"
+#include "algoritimos/algorithmpack.h"
 #include "algoritimos/bubblesort.h"
+#include "algoritimos/selectionsort.h"
 
 int main(){
 
@@ -132,11 +133,11 @@ int main(){
                 }
             }
             EndDrawing();
-
+            
             //executar os algoritimos com delay definido pela diferenca do gettime
             if (GetTime() - t_exec > switch_speed)
             {
-                if (switch_speed > 0.03)
+                if (switch_speed > 0.05)
                 {
                     switch_speed -= 0.01;
                 }
@@ -148,7 +149,7 @@ int main(){
                         break;
 
                     case 1:
-                        //selection Sort ainda não implementado
+                        pack = SelectionSort(dados, qtd_dados);
                         break;
                 }
 
