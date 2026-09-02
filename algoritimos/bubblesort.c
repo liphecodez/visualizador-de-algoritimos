@@ -5,9 +5,18 @@ typedef struct
     int round, pos, changed, sorted;
 } bubblesortstate;
 
-static bubblesortstate state = {1,0,0,0};
+static bubblesortstate state;
 
-algorithmpack BubbleSort(int arr[], int size){
+algorithmpack BubbleSort(int arr[], int size, int reset){
+
+    if (reset == 1)
+    {
+        state.round = 1;
+        state.pos = 0;
+        state.changed = 0;
+        state.sorted = 0;
+    }
+    
 
     algorithmpack pack;
     int holder;

@@ -7,8 +7,16 @@ typedef struct
 
 static selectionsortstate state = {0,1,0,0};
 
-algorithmpack SelectionSort(int arr[], int size){
+algorithmpack SelectionSort(int arr[], int size, int reset){
 
+    if (reset == 1)
+    {
+        state.round = 0;
+        state.pos = 1;
+        state.sorted = 0;
+        state.pos_menor = 0;
+    }
+    
     algorithmpack pack = {0};
 
     int holder;
