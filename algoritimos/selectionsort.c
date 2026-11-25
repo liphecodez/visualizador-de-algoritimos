@@ -1,62 +1,38 @@
-#include "algorithmpack.h"
-
-typedef struct
-{
-    int round, pos, sorted, pos_menor;
+#include "selectionsort.h"
+typedef struct {
+    int round, pos, pos_menor;
+    algorithmpack pack;
 } selectionsortstate;
-
-static selectionsortstate state = {0,1,0,0};
-
-algorithmpack SelectionSort(int arr[], int size, int reset){
-
-    if (reset == 1)
-    {
-        state.round = 0;
-        state.pos = 1;
-        state.sorted = 0;
-        state.pos_menor = 0;
+static selectionsortstate state;
+algorithmpack SelectionSort(int arr[], int size, int reset) {
+    if (reset)
+        state = (selectionsortstate){.pos = 1, .pack = {.x = -1, .y = -1}};
+    state.pack.changed = 0;
+    if (state.pack.sorted)
+        return state.pack;
+    if (state.round >= size - 1) {
+        state.pack.sorted = 1;
+        return state.pack;
     }
-    
-    algorithmpack pack = {0};
-
-    int holder;
-
-    if (state.round < size - 1 && state.sorted == 0)
-    {
-        if (state.pos < size)
-        {
-            pack.x = state.pos_menor;
-            pack.y = state.pos;
-            pack.changed = 0;
-
-            if (arr[state.pos] < arr[state.pos_menor])
-            {
-                state.pos_menor = state.pos;
-            }
-
-            state.pos += 1;
+    state.pack.x = state.pos_menor;
+    if (state.pos < size) {
+        state.pack.y = state.pos;
+        state.pack.comparisons++;
+        if (arr[state.pos] < arr[state.pos_menor])
+            state.pos_menor = state.pos;
+        state.pos++;
+    } else {
+        state.pack.y = state.round;
+        if (state.pos_menor != state.round) {
+            int temp = arr[state.round];
+            arr[state.round] = arr[state.pos_menor];
+            arr[state.pos_menor] = temp;
+            state.pack.movements += 2;
+            state.pack.changed = 1;
         }
-        else
-        {
-            pack.x = state.round;
-            pack.y = state.pos_menor;
-            pack.changed = 1;
-
-            holder = arr[state.pos_menor];
-            arr[state.pos_menor] = arr[state.round];
-            arr[state.round] = holder;
-
-            state.round += 1;
-            state.pos_menor = state.round;
-            state.pos = state.round + 1;
-        }
+        state.round++;
+        state.pos_menor = state.round;
+        state.pos = state.round + 1;
     }
-    else
-    {
-        state.sorted = 1;
-        pack.sorted = 1;
-    }
-    
-
-    return pack;
+    return state.pack;
 }
