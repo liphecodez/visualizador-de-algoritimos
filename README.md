@@ -1,4 +1,4 @@
-﻿# Algorithm Visualizer
+# Algorithm Visualizer
 
 Visualizador de ordenação em **C + Raylib**, com execução incremental compartilhada entre desktop e navegador via **WebAssembly**. Preserva a organização original: `main.c`, geração de dados e um módulo por algoritmo em `algoritimos/`.
 
@@ -112,3 +112,20 @@ node build/test_sort.js
 ```
 
 No ambiente restrito desta entrega, o LLVM não conseguiu expandir o caminho longo original. Um alias temporário de unidade com `subst` para o próprio workspace resolveu a inicialização; nenhum código do compilador ou configuração de segurança foi alterado. Em instalações normais do SDK isso não deve ser necessário.
+
+## Desenvolvimento e integração contínua
+
+Este repositório usa **GitHub Flow**. A `main` representa a versão estável; desenvolvimento acontece em `feature/<nome>`, correções em `fix/<nome>` e infraestrutura em `chore/<nome>`. Atualize a referência da `main` com `git fetch origin` antes de criar uma nova branch a partir de `origin/main`. Preserve alterações locais existentes e não reescreva o histórico.
+
+Depois de implementar, execute as verificações locais, revise o diff, crie commits [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) em inglês, envie a branch e abra um Pull Request para `main`. O responsável pelo repositório revisa e faz o merge **manualmente** depois dos checks aprovados. Não use push direto na `main`, force push ou auto-merge. Não é exigida aprovação de outro colaborador.
+
+O workflow `.github/workflows/ci.yml` roda no Ubuntu 24.04 em pushes para `main`, `feature/**`, `fix/**` e `chore/**`, e em PRs destinados à `main`. Ele possui dois checks obrigatórios:
+
+- **Desktop build and tests**: instala dependências gráficas, compila C + Raylib com GCC 13 e executa os testes de ordenação.
+- **WebAssembly build and tests**: compila C + Raylib para web com Emscripten 3.1.64, executa os mesmos testes em WASM/Node com verificações de memória e valida a exportação estática.
+
+Os warnings `-Wall -Wextra -Wpedantic` são erros nas fontes da aplicação e dos testes. As dependências externas mantêm suas próprias opções de compilação. A Raylib 5.5 tem revisão imutável e SHA-256 verificado; as Actions são fixadas por SHA completo; CMake 3.31.6 e Ninja 1.11.1.3 têm versões explícitas. O runner e os pacotes Ubuntu recebem atualizações de segurança, portanto não se promete identidade binária entre execuções. O SDK é armazenado em cache; execuções obsoletas são canceladas. O token do workflow possui somente leitura do conteúdo.
+
+Em **Actions → CI → execução aprovada → Artifacts**, baixe `web-wasm-<commit>` para integrar ao portfólio posteriormente ou `desktop-linux-<commit>` para obter o executável Linux (requer ambiente gráfico e bibliotecas de sistema compatíveis). Os artefatos ficam disponíveis por 14 dias; reexecute o workflow para gerar uma nova cópia. Após extrair o binário desktop, pode ser necessário executar `chmod +x visualizador`.
+
+O CI não publica sites, não altera o repositório do portfólio e não realiza merge. Não existe workflow de deploy para este projeto. A proteção da `main` exige PR, os dois checks aprovados, branch atualizada e conversas resolvidas; bloqueia force push e exclusão e se aplica também aos administradores. Se o CI falhar, corrija a causa na própria branch do PR.
