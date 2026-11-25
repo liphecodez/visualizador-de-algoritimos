@@ -2,13 +2,17 @@
 <html lang="pt-BR">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Algorithm Visualizer — C + Raylib</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;background:#0f141d;color:#e7eef7;font-family:system-ui,sans-serif;min-height:100%}body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:12px}canvas{display:block;width:100%;height:auto;aspect-ratio:1100/740;outline:none}main{width:100%;max-width:1100px}#status{color:#97a9bf;padding:8px;font-size:14px}canvas:focus-visible{outline:2px solid #50d6b6}footer{font-size:12px;color:#97a9bf;padding:8px;text-align:center}
+*{box-sizing:border-box}html,body{margin:0;background:#0f141d;color:#e7eef7;font-family:system-ui,sans-serif;min-height:100%}body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:12px}canvas{display:block;width:100%;height:auto;aspect-ratio:1100/740;outline:none;touch-action:none}main{width:100%;max-width:1100px}#status{color:#97a9bf;padding:8px;font-size:14px}canvas:focus-visible{outline:2px solid #50d6b6}footer{font-size:12px;color:#97a9bf;padding:8px;text-align:center}
 </style></head>
 <body><main><div id="status" role="status">Carregando WebAssembly...</div><canvas id="canvas" width="1100" height="740" tabindex="0" aria-label="Visualizador de algoritmos. Use os botoes ou Espaco para pausar e seta direita para avancar."></canvas><footer>C + Raylib · Algoritmos executados em WebAssembly · Clique no canvas para usar o teclado</footer></main>
 <script>
 var canvas=document.getElementById('canvas');
 var Module={canvas:canvas,print:console.log,printErr:console.error,onRuntimeInitialized:function(){document.getElementById('status').hidden=true;},onAbort:function(){var s=document.getElementById('status');s.hidden=false;s.textContent='Falha ao carregar. Recarregue a pagina em uma hospedagem HTTP(S) com WebGL habilitado.';}};
 canvas.addEventListener('pointerdown',function(){canvas.focus();});
+function cancelControlRepeat(){if(Module._CancelControlRepeat)Module._CancelControlRepeat();}
+window.addEventListener('blur',cancelControlRepeat);
+document.addEventListener('visibilitychange',function(){if(document.hidden)cancelControlRepeat();});
+for(const event of ['pointerup','pointerleave','pointercancel','blur'])canvas.addEventListener(event,cancelControlRepeat);
 canvas.addEventListener('keydown',function(e){if(['Space','ArrowRight','ArrowLeft','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();});
 canvas.addEventListener('webglcontextlost',function(e){e.preventDefault();var s=document.getElementById('status');s.hidden=false;s.textContent='Contexto grafico perdido. Recarregue a pagina.';});
 </script>
