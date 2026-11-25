@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'feature/**', 'fix/**', 'chore/**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: '2'
+
+jobs:
+  desktop:
+    name: Desktop build and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CC: gcc-13
+      CXX: g++-13
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y gcc-13 g++-13 libasound2-dev libx11-dev libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev libgl1-mesa-dev
+          python3 -m pip install --user cmake==3.31.6 ninja==1.11.1.3
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Configure desktop (project warnings are errors)
+        run: cmake -S . -B build/desktop -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - name: Compile C and Raylib
+        run: cmake --build build/desktop
+      - name: Run algorithm tests
+        run: ctest --test-dir build/desktop --output-on-failure
+      - name: Check desktop executable
+        run: test -x build/desktop/visualizador
+      - name: Upload desktop build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: desktop-linux-${{ github.sha }}
+          path: build/desktop/visualizador
+          if-no-files-found: error
+          retention-days: 14
+
+  web:
+    name: WebAssembly build and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install build tools
+        run: |
+          python3 -m pip install --user cmake==3.31.6 ninja==1.11.1.3
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Set up pinned Emscripten SDK
+        uses: emscripten-core/setup-emsdk@667eb33f24e84e7f362c16d8d7fff0629a73e15e # v15
+        with:
+          version: '3.1.64'
+          emsdk-version: '3.1.64'
+          actions-cache-folder: emsdk-cache
+          cache-key: emsdk-3.1.64-ubuntu-24.04-v1
+      - name: Configure WebAssembly and Raylib for web
+        run: emcmake cmake -S . -B build/web -G Ninja -DPLATFORM=Web -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - name: Compile web application and tests
+        run: cmake --build build/web
+      - name: Run algorithm tests in WebAssembly with memory checks
+        run: ctest --test-dir build/web --output-on-failure
+      - name: Validate exported web files
+        run: python3 scripts/validate-web.py dist/web
+      - name: Upload static web build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: web-wasm-${{ github.sha }}
+          path: dist/web/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14

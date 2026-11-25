@@ -1,398 +1,221 @@
+#include "algoritimos/bubblesort.h"
+#include "algoritimos/insertionsort.h"
+#include "algoritimos/mergesort.h"
+#include "algoritimos/quicksort.h"
+#include "algoritimos/selectionsort.h"
+#include "gerar-dados.h"
+#include "raylib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "raylib.h"
-#include "gerar-dados.h"
-#include "algoritimos/algorithmpack.h"
-#include "algoritimos/bubblesort.h"
-#include "algoritimos/selectionsort.h"
-
-int main(){
-
-    int largura = 8, i;
-    int dados[100], qtd_dados = 95, reset = 1;
-    int alt_janela = 450, lar_janela = 900;
-    int alt_base = 400, dis_base = (lar_janela - ((largura + 1) * qtd_dados)) / 2;
-
-    float switch_speed = 0.15;
-    double t_exec = 0;
-
-    algorithmpack pack = {0};
-
-    int menu = 1;
-    int algoritmo_selecionado = 0;
-
-    char velocidade_input[20] = "0.15";
-    char quantidade_input[20] = "95";
-
-    int campo_ativo = 0;
-
-    InitWindow(lar_janela, alt_janela, "Visualizador de algoritimos");
-
-    if (!IsWindowReady()) {
+#include <time.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#endif
+#define WIDTH 1100
+#define HEIGHT 740
+static const Color BG = {15, 20, 29, 255}, PANEL = {23, 31, 43, 255}, LINE = {43, 56, 73, 255};
+static const Color TEXT = {231, 238, 247, 255}, MUTED = {151, 169, 191, 255},
+                   ACCENT = {80, 214, 182, 255};
+static const Color COMPARE = {247, 202, 107, 255}, WRITE = {255, 129, 123, 255};
+typedef algorithmpack (*StepFunction)(int *, int, int);
+static const StepFunction functions[] = {BubbleSort, SelectionSort, InsertionSort, MergeSort,
+                                         QuickSort};
+static const char *names[] = {"Bubble Sort", "Selection Sort", "Insertion Sort", "Merge Sort",
+                              "Quick Sort"};
+static const char *best[] = {"O(n)", "O(n^2)", "O(n)", "O(n log n)", "O(n log n)"};
+static const char *average[] = {"O(n^2)", "O(n^2)", "O(n^2)", "O(n log n)", "O(n log n)"};
+static const char *worst[] = {"O(n^2)", "O(n^2)", "O(n^2)", "O(n log n)", "O(n^2)"};
+static const char *space[] = {"O(1)", "O(1)", "O(1)", "O(n)", "O(n)"};
+static const char *description[] = {"Compara vizinhos e troca os que estao fora de ordem.",
+                                    "Encontra o menor valor e o posiciona no inicio da faixa.",
+                                    "Insere cada valor na posicao correta do prefixo ordenado.",
+                                    "Intercala faixas ordenadas usando um vetor auxiliar.",
+                                    "Particiona os valores ao redor do ultimo elemento (pivo)."};
+static int data[SORT_CAPACITY], initial[SORT_CAPACITY], count = 50, selected = 0, needs_reset = 1,
+                                                        running = 0;
+static float interval = 0.05f, elapsed = 0;
+static algorithmpack pack = {.x = -1, .y = -1};
+static void restart(void) {
+    memcpy(data, initial, sizeof(data));
+    pack = (algorithmpack){.x = -1, .y = -1};
+    needs_reset = 1;
+    running = 0;
+    elapsed = 0;
+}
+static void generate(void) {
+    GerarDados(initial, 10, 350, count);
+    restart();
+}
+static void step(void) {
+    if (!pack.sorted) {
+        pack = functions[selected](data, count, needs_reset);
+        needs_reset = 0;
+    }
+    if (pack.sorted)
+        running = 0;
+}
+static int button(Rectangle r, const char *label, int active) {
+    int hover = CheckCollisionPointRec(GetMousePosition(), r);
+    DrawRectangleRounded(r, 0.15f, 4, active ? ACCENT : (hover ? LINE : PANEL));
+    DrawRectangleRoundedLinesEx(r, 0.15f, 4, 1, active ? ACCENT : LINE);
+    int width = MeasureText(label, 18);
+    DrawText(label, (int)(r.x + (r.width - width) / 2), (int)(r.y + (r.height - 18) / 2), 18,
+             active ? BG : TEXT);
+    if (hover)
+        SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+    return hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+}
+static void metric(int x, const char *label, const char *value) {
+    DrawText(label, x, 126, 15, MUTED);
+    DrawText(value, x, 150, 28, TEXT);
+}
+static void frame(void) {
+    BeginDrawing();
+    ClearBackground(BG);
+    SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+    DrawText("ALGORITHM", 24, 24, 23, TEXT);
+    DrawText("VISUALIZER", 24, 51, 23, ACCENT);
+    DrawText("C + RAYLIB / SORTING LAB", 270, 27, 14, MUTED);
+    DrawText(names[selected], 270, 54, 32, TEXT);
+    DrawText(pack.sorted ? "CONCLUIDO"
+             : running   ? "EM EXECUCAO"
+                         : "PAUSADO",
+             900, 62, 17, pack.sorted ? ACCENT : COMPARE);
+    DrawLine(242, 24, 242, 710, LINE);
+    DrawText("ALGORITMOS", 24, 112, 15, MUTED);
+    int action = 0;
+    for (int i = 0; i < 5; i++)
+        if (button((Rectangle){24, 143 + i * 48, 194, 38}, names[i], selected == i)) {
+            selected = i;
+            restart();
+            action = 1;
+        }
+    DrawText("ELEMENTOS", 24, 413, 15, MUTED);
+    if (button((Rectangle){24, 440, 44, 34}, "-", 0)) {
+        count = count > 3 ? count - 1 : 3;
+        generate();
+        action = 1;
+    }
+    DrawText(TextFormat("%d", count), 99, 448, 20, TEXT);
+    if (button((Rectangle){174, 440, 44, 34}, "+", 0)) {
+        count = count < SORT_CAPACITY ? count + 1 : SORT_CAPACITY;
+        generate();
+        action = 1;
+    }
+    DrawText("INTERVALO / PASSO", 24, 505, 15, MUTED);
+    if (button((Rectangle){24, 532, 44, 34}, "-", 0)) {
+        interval -= 0.01f;
+        if (interval < 0.01f)
+            interval = 0.01f;
+        elapsed = 0;
+        action = 1;
+    }
+    DrawText(TextFormat("%.2f s", interval), 84, 540, 19, TEXT);
+    if (button((Rectangle){174, 532, 44, 34}, "+", 0)) {
+        interval += 0.01f;
+        if (interval > 1)
+            interval = 1;
+        elapsed = 0;
+        action = 1;
+    }
+    DrawText("Menor intervalo = mais rapido", 24, 579, 12, MUTED);
+    DrawText("3 a 95 elementos", 24, 603, 14, MUTED);
+    DrawText("Espaco  pausar / continuar", 24, 661, 13, MUTED);
+    DrawText("Seta direita  um passo", 24, 683, 13, MUTED);
+    DrawRectangleRounded((Rectangle){270, 111, 806, 82}, 0.12f, 4, PANEL);
+    metric(290, "COMPARACOES", TextFormat("%llu", (unsigned long long)pack.comparisons));
+    metric(570, "MOVIMENTACOES", TextFormat("%llu", (unsigned long long)pack.movements));
+    metric(876, "ELEMENTOS", TextFormat("%d", count));
+    /* Keep every visible step on screen for at least one frame. */
+    if (button((Rectangle){270, 210, 170, 40},
+               pack.sorted ? "Concluido"
+               : running   ? "Pausar"
+                           : "Continuar",
+               !running && !pack.sorted) &&
+        !pack.sorted) {
+        running = !running;
+        elapsed = 0;
+        action = 1;
+    }
+    if (button((Rectangle){452, 210, 140, 40}, "Um passo", 0)) {
+        running = 0;
+        elapsed = 0;
+        step();
+        action = 1;
+    }
+    if (button((Rectangle){604, 210, 166, 40}, "Reiniciar", 0)) {
+        restart();
+        action = 1;
+    }
+    if (button((Rectangle){782, 210, 170, 40}, "Novos dados", 0)) {
+        generate();
+        action = 1;
+    }
+    if (IsKeyPressed(KEY_SPACE) && !pack.sorted) {
+        running = !running;
+        elapsed = 0;
+        action = 1;
+    }
+    if (IsKeyPressed(KEY_RIGHT)) {
+        running = 0;
+        elapsed = 0;
+        step();
+        action = 1;
+    }
+    if (IsKeyPressed(KEY_R)) {
+        restart();
+        action = 1;
+    }
+    if (!action && running) {
+        elapsed += GetFrameTime();
+        if (elapsed >= interval) {
+            elapsed = 0;
+            step();
+        }
+    }
+    DrawRectangleRounded((Rectangle){270, 267, 806, 284}, 0.025f, 4, PANEL);
+    for (int y = 0; y < 3; y++)
+        DrawLine(286, 295 + y * 112, 1060, 295 + y * 112, LINE);
+    float barWidth = 774.0f / count;
+    for (int i = 0; i < count; i++) {
+        Color color = pack.sorted ? ACCENT : TEXT;
+        if (!pack.sorted && (pack.x == i || pack.y == i))
+            color = pack.changed ? WRITE : COMPARE;
+        float h = data[i] / 350.0f * 240;
+        DrawRectangleRec(
+            (Rectangle){286 + i * barWidth, 535 - h, barWidth > 4 ? barWidth - 2 : barWidth - 1, h},
+            color);
+    }
+    DrawText("Comparando", 292, 564, 14, COMPARE);
+    DrawText("Escrevendo", 430, 564, 14, WRITE);
+    DrawText("Ordenacao concluida", 568, 564, 14, ACCENT);
+    DrawText(description[selected], 270, 596, 16, TEXT);
+    DrawText(TextFormat("TEMPO   Melhor: %s    Medio: %s    Pior: %s", best[selected],
+                        average[selected], worst[selected]),
+             270, 627, 16, MUTED);
+    DrawText(TextFormat("ESPACO AUXILIAR   %s", space[selected]), 270, 651, 16, MUTED);
+    DrawText("Comparacao = teste entre valores. Movimento = escrita em vetor "
+             "(inclui auxiliar).",
+             270, 686, 14, MUTED);
+    DrawText("Uma troca conta 2 movimentos. Reiniciar preserva a entrada e zera "
+             "os contadores.",
+             270, 707, 13, MUTED);
+    EndDrawing();
+}
+int main(void) {
+    srand((unsigned)time(NULL));
+    InitWindow(WIDTH, HEIGHT, "Algorithm Visualizer | C + Raylib");
+    if (!IsWindowReady())
         return 1;
-    }
-
+    SetTargetFPS(60);
+    generate();
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(frame, 0, 1);
+#else
     while (!WindowShouldClose())
-    {
-        // Inicia no menu (por isso == 1)
-        if (menu == 1)
-        {
-            BeginDrawing();
-
-            ClearBackground(BLACK);
-
-            DrawText("ALGORITHM VISUALIZER", 260, 60, 30, RAYWHITE);
-
-            Rectangle botao_bubble = {300, 130, 300, 50};
-            Rectangle botao_selection = {300, 190, 300, 50};
-            Rectangle botao_config = {300, 250, 300, 50};
-            Rectangle botao_iniciar = {300, 330, 300, 60};
-
-            Vector2 mouse = GetMousePosition();
-
-            //bubble sort
-            DrawRectangleRec(botao_bubble, RAYWHITE);
-            DrawText("Bubble Sort", 390, 145, 20, BLACK);
-
-            if (CheckCollisionPointRec(mouse, botao_bubble))
-            {
-                DrawRectangleLinesEx(botao_bubble, 3, GRAY);
-
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-                {
-                    algoritmo_selecionado = 0;
-                }
-            }
-
-            //selection sort
-            DrawRectangleRec(botao_selection, RAYWHITE);
-            DrawText("Selection Sort", 380, 205, 20, BLACK);
-
-            if (CheckCollisionPointRec(mouse, botao_selection))
-            {
-                DrawRectangleLinesEx(botao_selection, 3, GRAY);
-
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-                {
-                    algoritmo_selecionado = 1;
-                }
-            }
-
-            //configuracoes
-            DrawRectangleRec(botao_config, RAYWHITE);
-            DrawText("Configuracoes", 380, 265, 20, BLACK);
-
-            if (CheckCollisionPointRec(mouse, botao_config))
-            {
-                DrawRectangleLinesEx(botao_config, 3, GRAY);
-
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-                {
-                    menu = 2;
-                    campo_ativo = 0;
-                }
-            }
-
-            //oniciar
-            DrawRectangleRec(botao_iniciar, RAYWHITE);
-            DrawText("INICIAR", 410, 350, 20, BLACK);
-
-            if (CheckCollisionPointRec(mouse, botao_iniciar))
-            {
-                DrawRectangleLinesEx(botao_iniciar, 3, GRAY);
-
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-                {
-                    //gera os dados na hora que clicar no iniciar
-                    GerarDados(dados, 10, 350, qtd_dados);
-
-                    reset = 1;
-                    t_exec = GetTime();
-                    pack = (algorithmpack){0};
-
-                    menu = 0;
-                }
-            }
-
-            EndDrawing();
-        }
-
-        else if (menu == 2)
-        {
-            Rectangle campo_velocidade = {400, 140, 200, 45};
-            Rectangle campo_quantidade = {400, 210, 200, 45};
-            Rectangle botao_aplicar = {300, 285, 300, 50};
-            Rectangle botao_voltar = {300, 355, 300, 50};
-
-            Vector2 mouse = GetMousePosition();
-
-            //define qual campo ta clicado
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-            {
-                if (CheckCollisionPointRec(mouse, campo_velocidade))
-                {
-                    campo_ativo = 1;
-                }
-                else if (CheckCollisionPointRec(mouse, campo_quantidade))
-                {
-                    campo_ativo = 2;
-                }
-                else
-                {
-                    campo_ativo = 0;
-                }
-            }
-
-            //campo velocidade
-            if (campo_ativo == 1)
-            {
-                int caractere = GetCharPressed();
-
-                while (caractere > 0)
-                {
-                    //esse if e so um filtro ja que e uma string, e a mesma coisa e repitida para o campo 2
-                    if ((caractere >= '0' && caractere <= '9') || caractere == '.')
-                    {
-                        int tamanho = 0;
-
-                        while (velocidade_input[tamanho] != '\0')
-                        {
-                            tamanho++;
-                        }
-
-                        if (tamanho < 19)
-                        {
-                            velocidade_input[tamanho] = (char)caractere;
-                            velocidade_input[tamanho + 1] = '\0';
-                        }
-                    }
-
-                    caractere = GetCharPressed();
-                }
-
-                if (IsKeyPressed(KEY_BACKSPACE))
-                {
-                    int tamanho = 0;
-
-                    while (velocidade_input[tamanho] != '\0')
-                    {
-                        tamanho++;
-                    }
-
-                    if (tamanho > 0)
-                    {
-                        velocidade_input[tamanho - 1] = '\0';
-                    }
-                }
-            }
-
-            //campo quantidade
-            if (campo_ativo == 2)
-            {
-                int caractere = GetCharPressed();
-
-                while (caractere > 0)
-                {
-                    if (caractere >= '0' && caractere <= '9')
-                    {
-                        int tamanho = 0;
-
-                        while (quantidade_input[tamanho] != '\0')
-                        {
-                            tamanho++;
-                        }
-
-                        if (tamanho < 19)
-                        {
-                            quantidade_input[tamanho] = (char)caractere;
-                            quantidade_input[tamanho + 1] = '\0';
-                        }
-                    }
-
-                    caractere = GetCharPressed();
-                }
-
-                if (IsKeyPressed(KEY_BACKSPACE))
-                {
-                    int tamanho = 0;
-
-                    while (quantidade_input[tamanho] != '\0')
-                    {
-                        tamanho++;
-                    }
-
-                    if (tamanho > 0)
-                    {
-                        quantidade_input[tamanho - 1] = '\0';
-                    }
-                }
-            }
-
-            //mostra tudo na tela
-            BeginDrawing();
-
-            ClearBackground(BLACK);
-
-            DrawText("CONFIGURACOES", 310, 60, 30, RAYWHITE);
-
-            DrawText("Velocidade:", 280, 152, 20, RAYWHITE);
-            DrawText("Quantidade:", 280, 222, 20, RAYWHITE);
-
-            DrawRectangleRec(campo_velocidade, RAYWHITE);
-            DrawText(velocidade_input, 415, 152, 20, BLACK);
-
-            DrawRectangleRec(campo_quantidade, RAYWHITE);
-            DrawText(quantidade_input, 415, 222, 20, BLACK);
-
-            //mostrar qual campo ta ativo
-            if (campo_ativo == 1)
-            {
-                DrawRectangleLinesEx(campo_velocidade, 3, GRAY);
-            }
-            else
-            {
-                DrawRectangleLinesEx(campo_velocidade, 1, GRAY);
-            }
-
-            if (campo_ativo == 2)
-            {
-                DrawRectangleLinesEx(campo_quantidade, 3, GRAY);
-            }
-            else
-            {
-                DrawRectangleLinesEx(campo_quantidade, 1, GRAY);
-            }
-
-            //botao aplicar
-            DrawRectangleRec(botao_aplicar, RAYWHITE);
-            DrawText("APLICAR", 405, 300, 20, BLACK);
-
-            if (CheckCollisionPointRec(mouse, botao_aplicar))
-            {
-                DrawRectangleLinesEx(botao_aplicar, 3, GRAY);
-
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-                {
-                    switch_speed = atof(velocidade_input);
-                    qtd_dados = atoi(quantidade_input);
-
-                    if (switch_speed < 0.01)
-                    {
-                        strcpy(velocidade_input, "0.01");
-                        switch_speed = 0.01;
-                    }
-                    
-                    if (qtd_dados < 3)
-                    {
-                        strcpy(quantidade_input, "3");
-                        qtd_dados = 3;
-                    }
-                    else if (qtd_dados > 95)
-                    {
-                        strcpy(quantidade_input, "95");
-                        qtd_dados = 95;
-                    }
-
-                    largura = (lar_janela - (qtd_dados - 1)) / qtd_dados;
-                    dis_base = (lar_janela - ((largura + 1) * qtd_dados)) / 2;
-                }
-            }
-
-            //voltar pro menu principal
-            DrawRectangleRec(botao_voltar, RAYWHITE);
-            DrawText("VOLTAR", 405, 370, 20, BLACK);
-
-            if (CheckCollisionPointRec(mouse, botao_voltar))
-            {
-                DrawRectangleLinesEx(botao_voltar, 3, GRAY);
-
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-                {
-                    campo_ativo = 0;
-                    menu = 1;
-                }
-            }
-
-            EndDrawing();
-        }
-
-        //visualizador
-        else
-        {
-            BeginDrawing();
-
-            ClearBackground(BLACK);
-
-            Rectangle botao_voltar = {10, 10, 90, 30};
-            Vector2 mouse = GetMousePosition();
-
-            DrawRectangleRec(botao_voltar, RAYWHITE);
-            DrawText("VOLTAR", 13, 15, 20, BLACK);
-
-            //voltar pro menu
-            if (CheckCollisionPointRec(mouse, botao_voltar))
-            {
-                DrawRectangleLinesEx(botao_voltar, 3, GRAY);
-            
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-                {
-                    menu = 1;
-                }
-            }
-
-            //mostrar as colunas
-            for (i = 0; i < qtd_dados; i++)
-            {
-                int dis_real = dis_base + (i * (largura + 1));
-                int alt_real = alt_base - dados[i];
-
-                if (pack.x == i || pack.y == i)
-                {
-                    if (pack.changed == 1)
-                    {
-                        DrawRectangle(dis_real,alt_real,largura,dados[i],RED);
-                    }
-                    else
-                    {
-                        DrawRectangle(dis_real,alt_real,largura,dados[i],GREEN);
-                    }
-                }
-                else
-                {
-                    if (pack.sorted == 1)
-                    {
-                        DrawRectangle(dis_real,alt_real,largura,dados[i],GREEN);
-                    }
-                    else
-                    {
-                        DrawRectangle(dis_real,alt_real,largura,dados[i],RAYWHITE);
-                    }
-                }
-            }
-            EndDrawing();
-            
-            //executar os algoritimos com delay definido pela diferenca do gettime
-            if (GetTime() - t_exec > switch_speed)
-            {
-                switch (algoritmo_selecionado)
-                {
-                    case 0:
-                        pack = BubbleSort(dados, qtd_dados, reset);
-                        break;
-
-                    case 1:
-                        pack = SelectionSort(dados, qtd_dados, reset);
-                        break;
-                }
-
-                reset = 0;
-                t_exec = GetTime();
-            }
-        }
-    }
-
+        frame();
     CloseWindow();
-
+#endif
     return 0;
 }
