@@ -11,6 +11,8 @@ static void swap(int a[], int x, int y) {
     int temp = a[x];
     a[x] = a[y];
     a[y] = temp;
+    s.p.x = x;
+    s.p.y = y;
     s.p.movements += 2;
     s.p.changed = 1;
 }

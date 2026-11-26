@@ -4,10 +4,11 @@ Visualizador de ordenação em **C + Raylib**, com execução incremental compar
 
 ## Funcionalidades
 
-- Bubble Sort e Selection Sort preservados e corrigidos; Insertion Sort, Merge Sort e Quick Sort adicionados.
+- Doze algoritmos de ordenação, agrupados por categoria na barra lateral.
 - Seleção de algoritmo, pausa/continuação, passo único e reinício com a mesma entrada. Trocar de algoritmo também preserva a entrada para facilitar comparações.
 - Novos dados aleatórios, quantidade de 3 a 95 elementos e intervalo de 0,01 a 1 segundo por passo. O limite real também depende da taxa de quadros; cada passo permanece visível por pelo menos um quadro.
 - Contadores, descrição e complexidades na interface. Branco: barras comuns; amarelo: comparação; coral: escrita; verde: execução concluída.
+- Os botões **−** e **+** ajustam a quantidade ou o intervalo em passos de 1 elemento ou 0,01 s. Um toque ou clique aplica o primeiro ajuste imediatamente. Ao segurar, a repetição começa após cerca de 350 ms, com intervalos que diminuem de 100 ms até 25 ms. Soltar, sair do botão ou perder o foco cancela a repetição. Alterar a quantidade gera uma nova entrada, zera as métricas e deixa a execução pausada. Um ajuste no limite mantém a entrada atual. Alterar a velocidade mantém o estado da ordenação.
 - Atalhos com foco no canvas: **Espaço** pausa/continua, **→** executa um passo e **R** reinicia.
 
 ## Métricas e complexidade
@@ -16,15 +17,24 @@ Visualizador de ordenação em **C + Raylib**, com execução incremental compar
 
 **Movimentação** é cada escrita de um elemento no vetor principal ou auxiliar. Uma troca entre posições diferentes conta **2**; cópias para variáveis locais não contam. O Merge contabiliza tanto a escrita no auxiliar quanto a cópia de volta. O Insertion contabiliza deslocamentos e a escrita final da chave, mesmo que ela permaneça na mesma posição. Escritas do Merge no auxiliar destacam os índices de origem/destino sobre o gráfico principal; o auxiliar não é desenhado separadamente. Geração de dados e reinício não entram nas métricas.
 
-| Algoritmo | Melhor tempo | Tempo médio | Pior tempo | Espaço auxiliar |
-|---|---|---|---|---|
-| Bubble Sort | O(n) | O(n²) | O(n²) | O(1) |
-| Selection Sort | O(n²) | O(n²) | O(n²) | O(1) |
-| Insertion Sort | O(n) | O(n²) | O(n²) | O(1) |
-| Merge Sort | O(n log n) | O(n log n) | O(n log n) | O(n) |
-| Quick Sort | O(n log n) | O(n log n) | O(n²) | O(n) |
+| Algoritmo | Melhor tempo | Tempo médio | Pior tempo | Espaço auxiliar | Característica |
+|---|---|---|---|---|---|
+| Bubble Sort | O(n) | O(n²) | O(n²) | O(1) | Trocas adjacentes e parada antecipada |
+| Selection Sort | O(n²) | O(n²) | O(n²) | O(1) | Seleciona o mínimo de cada faixa |
+| Insertion Sort | O(n) | O(n²) | O(n²) | O(1) | Insere a chave no prefixo ordenado |
+| Cocktail Shaker Sort | O(n) | O(n²) | O(n²) | O(1) | Passadas adjacentes nas duas direções |
+| Merge Sort | O(n log n) | O(n log n) | O(n log n) | O(n) | Intercala faixas de baixo para cima |
+| Quick Sort | O(n log n) | O(n log n) | O(n²) | O(n) | Partição de Lomuto e pilha explícita |
+| Heap Sort | O(n) | O(n log n) | O(n log n) | O(1) | Constrói um heap máximo e extrai o topo |
+| Counting Sort | O(n + k) | O(n + k) | O(n + k) | O(k) | Reconstrói os valores a partir das frequências |
+| Radix Sort | O(d(n + b)) | O(d(n + b)) | O(d(n + b)) | O(n + b) | Distribuição estável do dígito menos ao mais significativo |
+| Gnome Sort | O(n) | O(n²) | O(n²) | O(1) | Troca vizinhos e recua ao encontrar inversões |
+| Shell Sort | O(n log n) | — | O(n²) | O(1) | Inserção por trocas com lacunas reduzidas à metade |
+| Comb Sort | O(n log n) | — | O(n²) | O(1) | Reduz a lacuna pelo fator 1,3 e termina com passadas adjacentes |
 
-As complexidades descrevem o crescimento do algoritmo com n, apesar da capacidade fixa do visualizador. O Merge é iterativo, de baixo para cima. O Quick usa partição de Lomuto com o último valor como pivô e pilha explícita de faixas (armazenamento reservado linear). Entradas ordenadas ou com muitos valores iguais podem atingir seu pior caso. Não há ordenação em JavaScript.
+A tabela descreve as variantes implementadas. O travessão indica que não foi adotada uma estimativa de caso médio para a sequência de lacunas do Shell ou para o Comb. O melhor caso do Heap pode ocorrer com chaves iguais. O Quick usa o último elemento como pivô e reserva espaço linear para as faixas pendentes. Entradas ordenadas ou com muitos valores iguais podem atingir seu pior caso.
+
+O Counting aceita inteiros de **0 a 350**, com **k = 351** posições no histograma. Fora desse intervalo, informa `invalid` antes de modificar o vetor. O Radix usa **b = 256** e percorre **d** dígitos da representação sem sinal, com ajuste para cobrir todo o intervalo de `int`, inclusive negativos. As comparações entre elementos ficam em **zero** nesses dois algoritmos. Leituras de chaves aparecem em amarelo. Atualizações de frequências e deslocamentos de baldes são metadados, então ficam fora das métricas. O Counting conta uma escrita por elemento reconstruído. O Radix conta as escritas para o auxiliar e de volta ao vetor principal em cada dígito.
 
 ## Compilar e testar
 
@@ -50,7 +60,7 @@ ctest --test-dir build/tests --output-on-failure
 
 A exportação gerada fica em **`dist/web/`**: `index.html`, `index.js`, `index.wasm`, `.nojekyll` e a licença da Raylib. Os builds locais são preservados, mas ficam fora do Git; em um checkout novo, compile ou baixe o artefato web de uma execução bem-sucedida do GitHub Actions. Publique a pasta inteira; todos os caminhos são relativos e não há CDN, fontes ou recursos externos em tempo de execução.
 
-Para recompilar, instale e ative o [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html). A entrega foi compilada com **Emscripten 3.1.64 e Raylib 5.5**. Em um terminal com o ambiente do SDK carregado:
+Para recompilar, instale e ative o [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html). O CI usa **Emscripten 3.1.64 e Raylib 5.5**. Em um terminal com o ambiente do SDK carregado:
 
 ```sh
 emcmake cmake -S . -B build/web -G Ninja -DPLATFORM=Web -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
@@ -88,7 +98,7 @@ O canvas tem resolução lógica de 1100 × 740 e escala proporcional por CSS; o
 
 - `main.c`: interface Raylib, controles e callback de quadro comum às plataformas.
 - `gerar-dados.c/.h`: geração da entrada.
-- `algoritimos/`: cinco máquinas de estado e `algorithmpack` (índices destacados, escrita, conclusão e métricas acumuladas).
+- `algoritimos/`: doze máquinas de estado e `algorithmpack` (índices destacados, escrita, conclusão e métricas acumuladas).
 - `tests/test_sort.c`: validação independente da interface.
 - `web/shell.html`: invólucro HTML responsivo do executável.
 - `CMakeLists.txt` e `scripts/build-web.ps1`: builds reproduzíveis.
@@ -96,22 +106,17 @@ O canvas tem resolução lógica de 1100 × 740 e escala proporcional por CSS; o
 
 A API original `Algoritmo(vetor, tamanho, reset)` permanece: inicie cada execução com `reset=1` e continue com `reset=0`, mantendo vetor e tamanho até concluir ou reiniciar. Tamanhos válidos: 0 a `SORT_CAPACITY` (95); a interface utiliza 3 a 95. Cada algoritmo mantém um único estado estático, portanto não é reentrante. Depois de concluir, chamadas sem reset não modificam vetor nem métricas.
 
-## Validação desta entrega
+## Validação automatizada
 
-- 2.890 casos aprovados em C: todos os tamanhos de 0 a 95, entradas ordenadas, invertidas, iguais, duplicadas, aleatórias e extremos inteiros.
-- Verificação contra `qsort`, preservação dos valores, sentinelas de limites, reinício após execução interrompida, conclusão persistente, contadores monotônicos e limite de trabalho por chamada.
-- Compilação desktop Windows/MinGW e CTest aprovados. Fontes da aplicação verificadas com `-Wall -Wextra -Wpedantic -Werror`.
-- Build Emscripten concluído com a Raylib compilada para web. A inspeção visual interativa no desktop/navegador não foi concluída: a ferramenta de controle local encerrou por timeout.
-- Os mesmos 2.890 casos passaram em WebAssembly/Node com `ASSERTIONS=2` e `SAFE_HEAP=1`. O JavaScript gerado passou na verificação sintática, o binário passou em `WebAssembly.validate`, e HTML/JS/WASM responderam HTTP 200 com os tipos MIME esperados em hospedagem estática local.
+A suíte versionada cobre Bubble, Selection, Insertion, Merge e Quick. Ela compara a saída com `qsort` em todos os tamanhos de 0 a 95 e verifica limites, reinício, contadores e trabalho por passo.
 
-Para repetir os testes do núcleo em WebAssembly, com o SDK ativado e Node no PATH:
+Para executar a mesma suíte em WebAssembly com Node.js e verificações de memória, ative o SDK e rode:
 
 ```sh
-emcc -std=c99 -O2 -I. tests/test_sort.c algoritimos/bubblesort.c algoritimos/selectionsort.c algoritimos/insertionsort.c algoritimos/mergesort.c algoritimos/quicksort.c -sENVIRONMENT=node -sASSERTIONS=2 -sSAFE_HEAP=1 -o build/test_sort.js
-node build/test_sort.js
+emcmake cmake -S . -B build/wasm-tests -G Ninja -DBUILD_VISUALIZER=OFF -DBUILD_TESTING=ON
+cmake --build build/wasm-tests
+ctest --test-dir build/wasm-tests --output-on-failure
 ```
-
-No ambiente restrito desta entrega, o LLVM não conseguiu expandir o caminho longo original. Um alias temporário de unidade com `subst` para o próprio workspace resolveu a inicialização; nenhum código do compilador ou configuração de segurança foi alterado. Em instalações normais do SDK isso não deve ser necessário.
 
 ## Desenvolvimento e integração contínua
 

@@ -15,7 +15,9 @@ function(enable_project_warnings target)
     target_compile_options(${target} PRIVATE /W4 /WX)
   endif()
 endfunction()
-set(ALGORITHMS algoritimos/bubblesort.c algoritimos/selectionsort.c algoritimos/insertionsort.c algoritimos/mergesort.c algoritimos/quicksort.c)
+set(ALGORITHMS algoritimos/bubblesort.c algoritimos/selectionsort.c algoritimos/insertionsort.c algoritimos/mergesort.c algoritimos/quicksort.c
+  algoritimos/cocktailsort.c algoritimos/shellsort.c algoritimos/heapsort.c
+  algoritimos/countingsort.c algoritimos/radixsort.c algoritimos/gnomesort.c algoritimos/combsort.c)
 add_library(sorting STATIC ${ALGORITHMS})
 target_include_directories(sorting PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 enable_project_warnings(sorting)
